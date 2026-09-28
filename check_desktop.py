@@ -10,6 +10,17 @@ window.update()
 window.recalculate()
 assert not window.status.get(), window.status.get()
 assert len(window.figures) == 4
+window.example.set('sign(x)')
+window.select_example()
+assert window.expression.get() == 'sign(x)' and not window.status.get()
+window.expression.set('sqrt(x)')
+window.recalculate()
+assert window.status.get() and window.example.get() == '직접 입력'
+window.reset_defaults()
+assert window.expression.get() == 'x' and window.length.get() == 'pi'
+assert window.order.get() == 10 and window.points.get() == 5000
+assert [n for n,v in window.comparisons.items() if v.get()] == [1,3,5,10]
+assert not window.status.get() and len(window.figures) == 4
 window.order_input.delete(0, 'end')
 window.order_input.insert(0, '37')
 assert window.order.get() == 37
