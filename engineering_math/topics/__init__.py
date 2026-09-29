@@ -3,7 +3,9 @@ def get_topics():
     from .fourier import FourierTopic
     from .heat import HeatTopic
     from .wave import WaveTopic
-    return {topic.id:topic for topic in (FourierTopic(),HeatTopic(),WaveTopic())}
+    from .ode import OdeTopic
+    from .laplace import LaplaceTopic
+    return {topic.id:topic for topic in (FourierTopic(),HeatTopic(),WaveTopic(),OdeTopic(),LaplaceTopic())}
 
 
 def get_topic(topic_id):

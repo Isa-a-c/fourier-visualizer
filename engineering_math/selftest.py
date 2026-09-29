@@ -124,6 +124,27 @@ def run(application, window, report_path):
         from engineering_math.core.expr import parse_expression, evaluate
         assert evaluate(parse_expression('besselj(0,x)'), ([0.],))[0] == 1.
         checks.append('SciPy 특수함수 평가')
+        window.selector.setCurrentIndex(window.selector.findData('ode'))
+        window.calculate()
+        wait_for_job(application, window)
+        assert window.result.topic == 'ode' and not errors, errors
+        assert window.laplace_link.isEnabled() and not window.animate.isEnabled()
+        application.processEvents()
+        window.grab().save(str(Path(report_path).with_name('ode-window.png')))
+        window.open_laplace()
+        wait_for_job(application, window)
+        assert window.result.topic == 'laplace' and 'values' in window.result.data and not errors, errors
+        checks.append('ODE 시간 응답·위상평면 및 초기조건 포함 라플라스 역변환 연결')
+        for index in range(window.tabs.count()):
+            if window.tabs.tabText(index) == '기호 계산':
+                window.tabs.setCurrentIndex(index)
+        application.processEvents()
+        window.grab().save(str(Path(report_path).with_name('laplace-window.png')))
+        window.form.set_values({'mode': '역변환 s → t', 'expression': '1'})
+        window.calculate()
+        wait_for_job(application, window)
+        assert 'values' not in window.result.data and not errors, errors
+        checks.append('임펄스 역변환의 기호 표시 및 그래프 생략')
         window.calculate()
         window.close()
         assert window.job.process is None

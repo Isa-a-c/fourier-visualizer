@@ -84,6 +84,10 @@ class MainWindow(QMainWindow):
         self.animate = QPushButton('변화 과정 재생')
         self.animate.setEnabled(False)
         layout.addWidget(self.animate)
+        self.laplace_link = QPushButton('이 ODE 결과를 라플라스 역변환으로 확인')
+        self.laplace_link.setEnabled(False)
+        self.laplace_link.clicked.connect(self.open_laplace)
+        layout.addWidget(self.laplace_link)
         splitter.addWidget(left)
 
         right = QWidget()
@@ -122,6 +126,7 @@ class MainWindow(QMainWindow):
         import matplotlib.pyplot as plt
         self.result = None
         self.animate.setEnabled(False)
+        self.laplace_link.setEnabled(False)
         while self.tabs.count():
             widget = self.tabs.widget(0)
             self.tabs.removeTab(0)
@@ -135,6 +140,7 @@ class MainWindow(QMainWindow):
         if self.topic is not None:
             self.states[self.topic.id] = self.form.values()
         self.topic = self.topics[self.selector.currentData()]
+        self.laplace_link.setVisible(self.topic.id == 'ode')
         self.description.setText(self.topic.description)
         old = self.scroll.takeWidget()
         if old is not None:
@@ -212,6 +218,10 @@ class MainWindow(QMainWindow):
                 table.setAlternatingRowColors(True)
                 table_tabs.addTab(table, name)
             self.tabs.addTab(table_tabs, '수치 표')
+            if 'symbolic' in result.data:
+                symbolic_view = QTextBrowser()
+                symbolic_view.setPlainText(result.data['symbolic'])
+                self.tabs.addTab(symbolic_view, '기호 계산')
             settings_view = QTextBrowser()
             lines = ['계산 당시 입력값', '']
             for spec in self.topic.inputs:
@@ -223,7 +233,8 @@ class MainWindow(QMainWindow):
             self.notices.setText('\n'.join(result.notices))
             self.result = result
             self.update_input_state()
-            self.animate.setEnabled(True)
+            self.animate.setEnabled(getattr(self.topic, 'supports_animation', True))
+            self.laplace_link.setEnabled(result.topic == 'ode')
             self.statusBar().showMessage('계산이 완료되었습니다. 결과는 계산 당시 입력값을 기준으로 합니다.')
         except Exception as exc:
             self.show_error(str(exc))
@@ -240,6 +251,15 @@ class MainWindow(QMainWindow):
                 dialog.exec()
             except Exception as exc:
                 self.show_error(str(exc))
+
+    def open_laplace(self):
+        if self.result is None or self.result.topic != 'ode':
+            return
+        params = {'mode': '역변환 s → t', 'expression': self.result.data['laplace_input'],
+                  'end_time': self.result.params['end_time'], 'num_points': self.result.params['num_points']}
+        self.selector.setCurrentIndex(self.selector.findData('laplace'))
+        self.form.set_values(params)
+        self.calculate()
 
     def save(self):
         path, _ = QFileDialog.getSaveFileName(self, '설정 저장', '', 'JSON (*.json)')
