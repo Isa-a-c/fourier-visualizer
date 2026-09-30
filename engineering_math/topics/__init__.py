@@ -5,7 +5,13 @@ def get_topics():
     from .wave import WaveTopic
     from .ode import OdeTopic
     from .laplace import LaplaceTopic
-    return {topic.id:topic for topic in (FourierTopic(),HeatTopic(),WaveTopic(),OdeTopic(),LaplaceTopic())}
+    from .chapter11_series import HalfRangeTopic, ForcedTopic, ApproximationTopic, SturmTopic, OrthogonalTopic
+    from .chapter11_transforms import IntegralTopic, SineCosineTopic, ContinuousTransformTopic, TransformTableTopic
+    ordered = (FourierTopic(), HalfRangeTopic(), ForcedTopic(), ApproximationTopic(),
+               SturmTopic(), OrthogonalTopic(), IntegralTopic(), SineCosineTopic(),
+               ContinuousTransformTopic(), TransformTableTopic(),
+               HeatTopic(), WaveTopic(), OdeTopic(), LaplaceTopic())
+    return {topic.id: topic for topic in ordered}
 
 
 def get_topic(topic_id):

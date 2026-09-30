@@ -20,7 +20,7 @@ shutil.copy2(root/'VALIDATION.md',folder/'VALIDATION.md')
 (folder/'실행 안내.txt').write_text(
     f'공업수학 학습 스튜디오 v{VERSION}\n\nEngineeringMathStudio.exe를 더블클릭하십시오.\n'
     'Python을 별도로 설치할 필요가 없습니다. _internal을 포함한 전체 폴더를 함께 보관하십시오.\n'
-    '주제: 푸리에 급수·DFT, 열·파동방정식, 질량–스프링–댐퍼 ODE, 라플라스 변환\n'
+    '주제: 교재 11.1~11.10 Fourier 해석, 열·파동방정식, 질량–스프링–댐퍼 ODE, 라플라스 변환\n'
     '학습 설명·계산 설정 탭과 열·파동 비교를 확인하십시오.\n'
     '파일 메뉴: 설정 및 결과 CSV 묶음 저장\n'
     '변화 과정 재생: 차수 또는 시간 애니메이션\n'
@@ -47,7 +47,7 @@ for name in ['LICENSE.txt','LICENSE']:
 archive_path=root/f'dist/EngineeringMathStudio-v{VERSION}-windows-x64.zip'
 with zipfile.ZipFile(archive_path,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
     for file in folder.rglob('*'):
-        if file.is_file() and file.name not in ('validation-report.json', 'validation-report.png', 'wave-small.png', 'ode-window.png', 'laplace-window.png', 'custom-force.png'):
+        if file.is_file() and file.name not in ('validation-report.json', 'validation-report.png', 'wave-small.png', 'ode-window.png', 'laplace-window.png', 'custom-force.png', 'chapter11-window.png'):
             archive.write(file,file.relative_to(folder.parent))
 digest=hashlib.sha256(archive_path.read_bytes()).hexdigest()
 archive_path.with_suffix('.sha256').write_text(f'{digest}  {archive_path.name}\n',encoding='ascii')

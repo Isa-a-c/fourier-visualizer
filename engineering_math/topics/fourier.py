@@ -23,7 +23,7 @@ def parse_orders(text):
 
 class FourierTopic:
     id = 'fourier'
-    title = '푸리에 급수와 DFT'
+    title = '11.1 · Fourier 급수와 표본화 실험'
     description = '주기 함수의 사인·코사인 분해, 부분합의 오차 및 표본화에 따른 변화를 살펴보십시오.'
     inputs = (
         InputSpec('function', '함수 f(x)', 'text', 'x'),

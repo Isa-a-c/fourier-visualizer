@@ -171,6 +171,19 @@ def run(application, window, report_path):
         window.help()
         assert '매개변수' in window.tabs.currentWidget().toPlainText()
         checks.append('확장 함수 및 공통 매개변수 입력·도움말')
+        # 교재 순서의 새 주제 모두를 실제 작업 프로세스와 Qt 화면으로 검증합니다.
+        for topic_id in list(window.topics)[1:10]:
+            window.selector.setCurrentIndex(window.selector.findData(topic_id))
+            window.calculate()
+            wait_for_job(application, window)
+            assert window.result is not None and window.result.topic == topic_id and not errors, errors
+            assert window.figures and not window.animate.isEnabled()
+            window.help()
+            assert '11.' in window.tabs.currentWidget().toPlainText()
+        window.tabs.setCurrentIndex(0)
+        application.processEvents()
+        window.grab().save(str(Path(report_path).with_name('chapter11-window.png')))
+        checks.append('11.2~11.10 전체 주제의 비동기 계산·그래프·학습 설명')
         window.calculate()
         window.close()
         assert window.job.process is None

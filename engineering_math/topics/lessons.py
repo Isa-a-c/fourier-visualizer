@@ -86,8 +86,10 @@ u(x,t) ≈ Σ qₙ(t) sin(nπx/ell)
 
 
 def lesson_for(topic_id):
+    from .chapter11_lessons import CHAPTER11_LESSONS
     from engineering_math.core.expr import FUNCTIONS
-    return LESSONS[topic_id] + '''
+    lesson = CHAPTER11_LESSONS[topic_id] if topic_id in CHAPTER11_LESSONS else LESSONS[topic_id]
+    return lesson + '''
 
 ## 수식 및 매개변수 입력 안내
 곱셈은 `2*x`처럼 *를 명시하고, 거듭제곱은 `x**2` 또는 `x^2`로 입력하십시오.
