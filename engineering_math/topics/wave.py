@@ -1,8 +1,9 @@
 """고정된 양 끝을 갖는 현의 무감쇠 파동방정식을 계산합니다."""
 import numpy as np
+from engineering_math.core.tables import GridRows
 from engineering_math.core.expr import parameter_expression, evaluate
 from engineering_math.core.models import InputSpec, Result, validate_params
-from engineering_math.core.pde import sine_coefficients, sine_basis, evolution_figures
+from engineering_math.core.pde import sine_coefficients, sine_basis, evolution_figures, evolution_animation
 
 
 class WaveTopic:
@@ -78,7 +79,7 @@ class WaveTopic:
                         np.column_stack((np.arange(1, count+1), displacement_coefficients, velocity_coefficients, omega))),
             '에너지': (['t', 'energy'], np.column_stack((time, energy))),
             '변위 및 열 비교': (['t', 'x', 'wave u', 'heat u'],
-                              np.column_stack((np.repeat(time, len(x)), np.tile(x, len(time)), displacement.ravel(), heat.ravel()))),
+                              GridRows((time, x), (displacement, heat))),
         }
         return Result(self.id, params, metrics, tables,
                       dict(x=x, time=time, initial=initial, displacement=displacement, heat=heat,
@@ -109,5 +110,4 @@ class WaveTopic:
 
     def animation(self, result):
         data = result.data
-        return dict(x=data['x'], frames=data['displacement'], labels=[f't = {t:.5g}' for t in data['time']],
-                    reference=data['initial'], xlabel='x', ylabel='Displacement')
+        return evolution_animation(data['x'], data['time'], data['initial'], data['displacement'], 'Displacement')

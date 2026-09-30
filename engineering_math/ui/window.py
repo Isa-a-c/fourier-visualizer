@@ -1,19 +1,20 @@
 """주제 교체에 독립적인 공업수학 학습 화면입니다."""
 from pathlib import Path
 import numpy as np
-from PySide6.QtCore import Qt, QAbstractTableModel
+from PySide6.QtCore import Qt, QAbstractTableModel, QSignalBlocker
 from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QComboBox, QLabel, QPushButton, QScrollArea, QTabWidget, QProgressBar, QMessageBox,
     QFileDialog, QTableView, QTextBrowser)
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg, NavigationToolbar2QT
 from engineering_math import VERSION
-from engineering_math.topics import get_topics
+from engineering_math.topics import get_topic
 from engineering_math.topics.lessons import lesson_for
 from engineering_math.core.project import save_settings, load_settings, export_results
 from engineering_math.core.models import validate_params
 from .forms import InputForm
 from .jobs import CalculationJob
 from .animation import AnimationDialog
+from .experiments import ExperimentSelector
 
 
 class ResultTable(QAbstractTableModel):
@@ -43,8 +44,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f'공업수학 학습 스튜디오 {VERSION}')
         self.resize(1400, 900)
-        self.topics = get_topics()
         self.states = {}
+        self.state_key = None
         self.topic = None
         self.form = None
         self.result = None
@@ -58,9 +59,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
         left = QWidget()
         layout = QVBoxLayout(left)
-        self.selector = QComboBox()
-        for topic in self.topics.values():
-            self.selector.addItem(topic.title, topic.id)
+        self.selector = ExperimentSelector()
         layout.addWidget(self.selector)
         self.description = QLabel()
         self.description.setWordWrap(True)
@@ -99,6 +98,7 @@ class MainWindow(QMainWindow):
         self.input_state.setWordWrap(True)
         output.addWidget(self.input_state)
         self.tabs = QTabWidget()
+        self.tabs.currentChanged.connect(self.render_tab)
         output.addWidget(self.tabs)
         self.notices = QLabel()
         self.notices.setWordWrap(True)
@@ -124,6 +124,7 @@ class MainWindow(QMainWindow):
 
     def clear_output(self):
         import matplotlib.pyplot as plt
+        blocker = QSignalBlocker(self.tabs)
         self.result = None
         self.animate.setEnabled(False)
         self.laplace_link.setEnabled(False)
@@ -138,20 +139,25 @@ class MainWindow(QMainWindow):
     def change_topic(self, *_):
         self.cancel()
         if self.topic is not None:
-            self.states[self.topic.id] = self.form.values()
-        self.topic = self.topics[self.selector.currentData()]
+            self.states[self.state_key] = self.form.values()
+        self.state_key = self.selector.currentIndex()
+        entry = self.selector.experiment
+        self.topic = get_topic(entry.topic)
         self.laplace_link.setVisible(self.topic.id == 'ode')
         self.description.setText(self.topic.description)
         old = self.scroll.takeWidget()
         if old is not None:
             old.deleteLater()
-        self.form = InputForm(self.topic.inputs)
-        self.form.set_values(self.states.get(self.topic.id, {}))
+        self.form = InputForm(self.topic.inputs, entry.defaults)
+        self.form.set_values(self.states.get(self.state_key, {}))
         self.form.changed.connect(self.update_input_state)
         self.scroll.setWidget(self.form)
         self.examples.clear()
         self.examples.addItem('예제를 선택하십시오')
-        self.examples.addItems(list(self.topic.examples))
+        for name, params in self.topic.examples.items():
+            if all(params.get(key, next(s.default for s in self.topic.inputs if s.key == key)) == value
+                   for key, value in entry.defaults.items()):
+                self.examples.addItem(name)
         self.clear_output()
         self.add_lesson()
         self.update_input_state()
@@ -183,10 +189,19 @@ class MainWindow(QMainWindow):
             self.input_state.setStyleSheet('')
 
     def calculate(self):
+        try:
+            params = validate_params(self.topic.inputs, self.form.values())
+        except ValueError as exc:
+            self.show_error(str(exc))
+            return
+        if self.result is not None and self.result.topic == self.topic.id and self.result.params == params:
+            self.cancel()
+            self.statusBar().showMessage('입력이 동일하여 현재 결과를 재사용하였습니다.')
+            return
         self.progress.show()
         self.statusBar().showMessage('계산 중입니다. 취소하거나 다른 주제로 이동할 수 있습니다.')
         try:
-            self.job.start(self.topic.id, self.form.values())
+            self.job.start(self.topic.id, params)
         except Exception as exc:
             self.show_error(str(exc))
 
@@ -204,13 +219,9 @@ class MainWindow(QMainWindow):
             figures = self.topic.figures(result)
             for name, figure in figures.items():
                 page = QWidget()
-                layout = QVBoxLayout(page)
-                canvas = FigureCanvasQTAgg(figure)
-                layout.addWidget(NavigationToolbar2QT(canvas, page))
-                layout.addWidget(canvas)
+                page.pending_figure = figure
                 self.tabs.addTab(page, name)
                 self.figures.append(figure)
-                canvas.draw()
             table_tabs = QTabWidget()
             for name, (columns, rows) in result.tables.items():
                 table = QTableView()
@@ -236,8 +247,22 @@ class MainWindow(QMainWindow):
             self.animate.setEnabled(getattr(self.topic, 'supports_animation', True))
             self.laplace_link.setEnabled(result.topic == 'ode' and bool(result.data.get('laplace_input')))
             self.statusBar().showMessage('계산이 완료되었습니다. 결과는 계산 당시 입력값을 기준으로 합니다.')
+            self.render_tab(self.tabs.currentIndex())
         except Exception as exc:
             self.show_error(str(exc))
+
+    def render_tab(self, index):
+        """선택한 탭에서만 Qt 캔버스를 만들고 처음 한 번 그립니다."""
+        page = self.tabs.widget(index)
+        if page is None or not hasattr(page, 'pending_figure'):
+            return
+        figure = page.pending_figure
+        del page.pending_figure
+        layout = QVBoxLayout(page)
+        canvas = FigureCanvasQTAgg(figure)
+        layout.addWidget(NavigationToolbar2QT(canvas, page))
+        layout.addWidget(canvas)
+        canvas.draw()
 
     def show_error(self, message):
         self.progress.hide()
@@ -280,7 +305,7 @@ class MainWindow(QMainWindow):
     def load_path(self, path):
         """대화상자와 분리하여 실제 설정 로딩 경로를 검사할 수 있습니다."""
         data = load_settings(path)
-        self.selector.setCurrentIndex(self.selector.findData(data['topic']))
+        self.selector.select(data['topic'], data['params'])
         self.form.set_values(data['params'])
         self.calculate()
 

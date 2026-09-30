@@ -6,6 +6,7 @@ from pathlib import Path
 from engineering_math.topics.fourier import MODES
 from engineering_math.core.project import save_settings, load_settings, export_results
 from engineering_math.ui.animation import AnimationDialog
+from engineering_math.topics.catalog import EXPERIMENTS
 
 
 def wait_for_job(application, window):
@@ -20,6 +21,7 @@ def wait_for_job(application, window):
 
 
 def run(application, window, report_path):
+    Path(report_path).parent.mkdir(parents=True, exist_ok=True)
     checks = []
     errors = []
     window.show_error = errors.append
@@ -60,10 +62,11 @@ def run(application, window, report_path):
         wait_for_job(application, window)
         assert errors
         errors.clear()
+        previous = window.result
         window.form.set_values({'N': 20})
         window.calculate()
         wait_for_job(application, window)
-        assert not errors and window.result.data['cache_integrated'] == 0
+        assert not errors and window.result is previous and window.job.process is None
         checks.append('잘못된 입력 이후 복구 및 성공 캐시 보존')
         for mode in MODES:
             result = window.topic.compute({'mode': mode})
@@ -172,7 +175,7 @@ def run(application, window, report_path):
         assert '매개변수' in window.tabs.currentWidget().toPlainText()
         checks.append('확장 함수 및 공통 매개변수 입력·도움말')
         # 교재 순서의 새 주제 모두를 실제 작업 프로세스와 Qt 화면으로 검증합니다.
-        for topic_id in list(window.topics)[1:10]:
+        for topic_id in list(dict.fromkeys(item.topic for item in EXPERIMENTS))[1:10]:
             window.selector.setCurrentIndex(window.selector.findData(topic_id))
             window.calculate()
             wait_for_job(application, window)
@@ -206,6 +209,7 @@ def run(application, window, report_path):
         application.processEvents()
         window.grab().save(str(Path(report_path).with_name('chapter12-window.png')))
         checks.append('12장 새 PDE 주제·기호 잔차·막의 2차원 애니메이션')
+        window.form.fields['end_time'].setValue(3.)
         window.calculate()
         window.close()
         assert window.job.process is None

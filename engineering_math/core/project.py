@@ -41,8 +41,9 @@ def export_results(path, result):
         archive.writestr('settings.json', json.dumps(settings(result.topic, result.params), ensure_ascii=False, indent=2))
         archive.writestr('metrics.json', json.dumps(result.metrics, ensure_ascii=False, indent=2))
         for name, (columns, rows) in result.tables.items():
-            stream = io.StringIO(newline='')
-            writer = csv.writer(stream)
-            writer.writerow(columns)
-            writer.writerows(['' if isinstance(value, float) and not math.isfinite(value) else value for value in row] for row in rows)
-            archive.writestr(name+'.csv', stream.getvalue().encode('utf-8-sig'))
+            # 전체 CSV 문자열을 메모리에 복제하지 않고 ZIP 항목에 순서대로 씁니다.
+            with archive.open(name+'.csv', 'w') as raw:
+                with io.TextIOWrapper(raw, encoding='utf-8-sig', newline='') as stream:
+                    writer = csv.writer(stream)
+                    writer.writerow(columns)
+                    writer.writerows(['' if isinstance(value, float) and not math.isfinite(value) else value for value in row] for row in rows)

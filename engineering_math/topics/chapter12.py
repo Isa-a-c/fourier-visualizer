@@ -1,5 +1,6 @@
 """교재 12장의 입력 명세·결과·시각화입니다. 계산은 core에 분리합니다."""
 import numpy as np
+from engineering_math.core.tables import GridRows
 import sympy as sp
 from scipy.special import erfc
 from matplotlib.figure import Figure
@@ -8,7 +9,7 @@ from engineering_math.core.expr import parameter_expression, evaluate, symbols_f
 from engineering_math.core.chapter11 import checked
 from engineering_math.core.chapter12 import (dalembert, infinite_heat, rectangle_membrane,
     disk_membrane, disk_potential, sphere_potential)
-from engineering_math.core.pde import evolution_figures
+from engineering_math.core.pde import evolution_figures, evolution_animation
 
 PARAMETERS = InputSpec('parameters', '매개변수 (A=2; w=3)', 'text', '')
 TIME_INPUTS = (
@@ -28,7 +29,7 @@ def evolution_result(topic_id, p, x, time, frames, initial, notices, metrics=Non
                   '초기 재구성 RMSE': float(np.sqrt(np.mean((frames[0] - initial) ** 2)))}
     statistics.update(metrics or {})
     checked(list(statistics.values()))
-    tables = {'시공간 표본': (['t', 'x', 'u'], np.column_stack((np.repeat(time, len(x)), np.tile(x, len(time)), frames.ravel())))}
+    tables = {'시공간 표본': (['t', 'x', 'u'], GridRows((time, x), (frames,)))}
     return Result(topic_id, p, statistics, tables, dict(x=x, time=time, frames=frames, initial=initial), notices)
 
 
@@ -40,8 +41,7 @@ class EvolutionTopic:
 
     def animation(self, result):
         d = result.data
-        return dict(x=d['x'], frames=d['frames'], reference=d['initial'],
-                    labels=[f't={t:.5g}' for t in d['time']], xlabel='x', ylabel='u')
+        return evolution_animation(d['x'], d['time'], d['initial'], d['frames'])
 
 
 # ── 12.1: 후보 해를 방정식에 대입하여 잔차 확인 ────────────────────
@@ -226,9 +226,9 @@ class MembraneTopic:
                    '에너지 최대 변화': float(np.max(np.abs(energy-energy[0])))}
         checked(list(metrics.values()))
         data = dict(x=x, y=y, time=time, frames=frames, initial=initial, energy=energy, polar=polar)
-        xx, yy = np.meshgrid(x, y, indexing='xy' if polar else 'ij')
+        samples = GridRows((y, x), (frames[-1],), (1, 0)) if polar else GridRows((x, y), (frames[-1],))
         tables = {'모드 계수': modes, '에너지': (['t', 'energy'], np.column_stack((time, energy))),
-                  '최종 공간 표본': (['theta' if polar else 'x', 'r' if polar else 'y', 'u'], np.column_stack((xx.ravel(), yy.ravel(), frames[-1].ravel())))}
+                  '최종 공간 표본': (['theta' if polar else 'x', 'r' if polar else 'y', 'u'], samples)}
         return Result(self.id, p, metrics, tables, data,
             ['고정 가장자리·일정한 속력·무감쇠·무외력의 유한 모드 해입니다. 임의 형태의 막은 지원하지 않습니다.',
              '에너지는 단위 면밀도 모드 에너지입니다. 출력 시간 간격이 크면 진동을 놓칠 수 있습니다.'])
@@ -324,10 +324,9 @@ class PotentialTopic:
             rows, columns = list(enumerate(coefficients)), ['n', 'c_n']
         # 실제 그림은 최대 241개 각도 표본만 사용하여 UI 부담을 줄입니다.
         stride = max(1, int(np.ceil(len(theta)/241)))
-        rr, tt = np.meshgrid(r, theta, indexing='ij')
         rmse = float(np.sqrt(np.mean(checked((field[-1]-target)**2))))
         return Result(self.id, p, {'경계 재구성 RMSE': rmse},
-            {'계수': (columns, rows), '퍼텐셜': (['r', 'theta', 'u'], np.column_stack((rr.ravel(), tt.ravel(), field.ravel())))},
+            {'계수': (columns, rows), '퍼텐셜': (['r', 'theta', 'u'], GridRows((r, theta), (field,)))},
             dict(x=theta[::stride], y=r, field=field[:, ::stride], full_field=field, theta=theta, r=r),
             ['원판: u=a₀+Σ(r/R)ⁿ(aₙcos nθ+bₙsin nθ). 구: u=Σcₙ(r/R)ⁿPₙ(cos φ).',
              '중심에서 유한한 내부해와 Dirichlet 조건만 지원합니다. 구 그림은 대칭축을 포함하는 단면입니다.',

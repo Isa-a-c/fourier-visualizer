@@ -1,8 +1,9 @@
 """고정 온도 경계조건을 갖는 1차원 열방정식의 변수분리 해입니다."""
 import numpy as np
+from engineering_math.core.tables import GridRows
 from engineering_math.core.expr import parameter_expression, evaluate
 from engineering_math.core.models import InputSpec, Result, validate_params
-from engineering_math.core.pde import sine_coefficients, heat_accuracy, evolution_figures
+from engineering_math.core.pde import sine_coefficients, heat_accuracy, evolution_figures, evolution_animation
 
 
 class HeatTopic:
@@ -55,7 +56,7 @@ class HeatTopic:
                    '격자 세분화 계수 변화': accuracy['coefficient_change']}
         tables = {'사인 계수': (['n', 'b_n'], np.column_stack((np.arange(1, count+1), coefficients))),
                   '잔차 에너지': (['t', 'integral (u-steady)^2 dx'], np.column_stack((time, energy))),
-                  '온도': (['t', 'x', 'u'], np.column_stack((np.repeat(time, len(x)), np.tile(x, len(time)), temperature.ravel())))}
+                  '온도': (['t', 'x', 'u'], GridRows((time, x), (temperature,)))}
         tables['정확도 비교'] = (['변경 항목', '적분 표본 수', 'N', '초기 재구성 RMSE (공통 격자)', '기준과 차이 t=0 (최대)', '기준과 차이 t=마지막 (최대)'], accuracy['rows'])
         return Result(self.id, params, metrics, tables,
                       dict(x=x, time=time, initial=initial, steady=steady, temperature=temperature, coefficients=coefficients, accuracy=accuracy), notices)
@@ -80,5 +81,4 @@ class HeatTopic:
 
     def animation(self, result):
         data = result.data
-        return dict(x=data['x'], frames=data['temperature'], labels=[f't = {t:.5g}' for t in data['time']],
-                    reference=data['initial'], xlabel='x', ylabel='Temperature')
+        return evolution_animation(data['x'], data['time'], data['initial'], data['temperature'], 'Temperature')

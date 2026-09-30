@@ -1,4 +1,27 @@
-# 공업수학 학습 스튜디오 1.5
+# 공업수학 학습 스튜디오 1.6
+
+## 공통 실험 화면과 구조 정리
+
+**BEFORE:** 21개 주제를 단원 중심으로 선택하고 이전 GUI·검사 파일을 함께 관리하였습니다.
+
+**AFTER:** 6개 실험군에서 **문제 → 영역·구성 → 지원 해법**을 선택합니다. 교재 바로가기와 예제·학습 설명은 유지합니다. 수치 설정 버튼으로 적분·출력 표본 설정을 펼칠 수 있으며 접어도 입력값은 보존됩니다.
+
+| 실험군 | 기존 주제 수 | 주요 설정 |
+|---|---:|---|
+| 함수 전개·근사 | 4 | 전체/반구간, 기저, 계수 변형 |
+| 고유값·고유함수 | 1 | 상수계수, DD/NN/DN 경계 |
+| 적분변환·표본화 | 5 | Fourier/Laplace, 커널·방향, 공식 검산 |
+| 진동·ODE | 2 | 직접 외력/주기 외력의 급수 근사 |
+| PDE·공간 분포 | 8 | 열/파동/퍼텐셜, 지원 영역·조건 |
+| 수식·해 검산 | 1 | 후보 해와 방정식 잔차 |
+
+목록은 실제로 지원하는 조합만 제공합니다. 같은 PDE라도 임의 경계조건을 모든 해법에 적용할 수 있는 것은 아닙니다. 반무한 열·파동은 같은 계산 모듈의 두 구성으로 연결됩니다. DFT·aliasing 추가 실험은 Fourier 급수의 추가 분석에서 계속 사용할 수 있습니다.
+
+필요한 계산 모듈만 가져오며, 그래프의 Qt 캔버스는 탭을 처음 열 때 생성합니다. PDE 표는 원본 배열을 참조하고 CSV는 ZIP에 순차적으로 기록합니다. 입력이 동일하면 현재 성공 결과를 재사용합니다. 기존 JSON 설정 버전 1·2의 불러오기를 유지합니다.
+
+이전 Tkinter·Streamlit 소스는 제거하였습니다. 노트북의 참조와 DFT 내보내기를 현재 `engineering_math/`로 옮기고 이전 수학 검사는 pytest에 통합하였습니다. 노트북만으로 소스가 재생성되지는 않습니다. 검사·배포 도구는 `scripts/`, 설계·성능 기록은 `docs/`에서 관리합니다.
+
+[설계 문서](docs/ARCHITECTURE.md)와 [측정 결과](docs/PERFORMANCE.md)를 참고하십시오. 현재 소스는 1.6이며, 보존된 `dist/`의 1.5 실행 파일·ZIP은 이전 버전입니다. 새 구조는 `실행.bat`으로 실행하십시오.
 
 공업수학의 수식, 수치 계산 및 그래프를 연결하는 데스크톱 학습 프로그램입니다. Kreyszig 『공업수학 10판 하』 **11장 Fourier 해석·12장 편미분방정식 순서의 학습 모듈**과 **ODE·라플라스 변환**을 제공합니다. 아직 공업수학 전체 또는 교재의 모든 예제·경계조건을 지원하는 것은 아닙니다.
 
@@ -94,11 +117,11 @@ python -m venv .venv
 .venv\Scripts\python.exe main.py
 ```
 
-환경이 준비되어 있다면 `실행.bat`을 더블클릭하십시오. 브라우저 대신 Qt 창이 열립니다. Qt의 공식 Python 바인딩인 PySide6를 사용합니다. 기존 Tkinter 화면은 `fourier_visualizer/desktop_app.py`, 선택적 Streamlit 화면은 `fourier_visualizer/app.py`에 보존되어 있으며 주력 실행 경로는 `main.py`입니다. 레거시 웹 화면을 사용하려면 해당 폴더의 `requirements.txt`를 별도로 설치하십시오.
+환경이 준비되어 있다면 `실행.bat`을 더블클릭하십시오. Qt의 공식 Python 바인딩인 PySide6 창이 열리며 주력 실행 경로는 `main.py`입니다. 테스트와 노트북 셀 검사는 `pip install -r requirements-dev.txt`로 개발 의존성을 설치하십시오.
 
 배포판은 `dist/EngineeringMathStudio/EngineeringMathStudio.exe`를 실행하십시오. `_internal`을 포함한 전체 폴더가 필요합니다. Python 설치는 필요하지 않습니다.
 
-개발 환경에서 배포판을 다시 만들려면 `requirements-build.txt`를 설치한 뒤 `build_windows.ps1`, `check_portable.py`, `package_release.py` 순서로 실행하십시오. 검사 범위는 `VALIDATION.md`에 기록되어 있습니다.
+개발 환경에서 배포판을 다시 만들려면 `requirements-build.txt`를 설치한 뒤 `build_windows.ps1`, `python scripts/check_portable.py`, `python scripts/package_release.py` 순서로 실행하십시오. 검사 범위는 `VALIDATION.md`에 기록되어 있습니다.
 
 ## 사용 방법
 
@@ -218,6 +241,8 @@ engineering_math/
   core/
     expr.py                     # 허용 수식·변수·인자 수·복소수 정책
     models.py                   # InputSpec, Result, Topic 계약
+    tables.py                   # 원본 격자를 참조하는 표 행
+    transform_export.py         # 노트북 DFT 결과 내보내기
     fourier.py                  # 적분·부분합·오차·계수 캐시
     analysis.py                 # DFT/FFT와 추가 분석
     diagnostics.py              # 격자 세분화와 수렴 진단
@@ -226,6 +251,7 @@ engineering_math/
     custom_ode.py               # 직접 외력·불연속 경계·수치 비교·기호 상태
     project.py                  # JSON 설정 및 CSV ZIP 저장
   topics/
+    catalog.py                  # 실험군·문제·지원 구성·교재 연결
     fourier.py                  # 푸리에 입력·계산·그림
     heat.py                     # 열방정식 입력·계산·그림
     wave.py                     # 파동방정식 및 열·파동 비교
@@ -233,6 +259,7 @@ engineering_math/
     laplace.py                  # 단측 정변환·역변환·분포 처리
     lessons.py                  # 주제별 학습 설명
   ui/
+    experiments.py              # 공통 실험 선택 화면
     forms.py                    # 입력 명세로 생성하는 공통 폼
     jobs.py                     # 종료 가능한 계산 프로세스
     window.py                   # 주제 선택·그래프·표·저장 화면
@@ -260,7 +287,8 @@ tests/test_mathematics.py        # 해석해·입력 경계·저장 검증
 
 ```powershell
 .venv\Scripts\python.exe -m pytest tests -q
-.venv\Scripts\python.exe main.py --self-test qt-validation.json
+.venv\Scripts\python.exe main.py --self-test build/qa/validation.json
+.venv\Scripts\python.exe scripts/check_notebook.py
 ```
 
 노트북은 소스 파일을 생성하거나 덮어쓰지 않습니다. 변경은 `.py`에 작성한 뒤 커널을 다시 시작하여 확인하십시오. 노트북 실행에는 별도로 Jupyter와 IPython 환경이 필요합니다.

@@ -6,7 +6,8 @@ import sys
 import zipfile
 from pathlib import Path
 
-root=Path(__file__).resolve().parent
+root=Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root))
 from engineering_math import VERSION
 folder=root/'dist/EngineeringMathStudio'
 if not (folder/'EngineeringMathStudio.exe').is_file():

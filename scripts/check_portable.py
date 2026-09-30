@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-root=Path(__file__).resolve().parent
+root=Path(__file__).resolve().parents[1]
 test_root=Path(tempfile.mkdtemp(prefix='한글 배포 검사 ',dir=root/'build'))
 release=test_root/'프로그램 폴더'
 shutil.copytree(root/'dist/EngineeringMathStudio',release)
@@ -24,3 +24,8 @@ assert payload['passed'] and payload['frozen']
 payload['scope']='Same Windows installation; copied Unicode/space path; restricted PATH; no separate OS validation'
 (root/'build/portable-validation.json').write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASS: copied Unicode/space path, restricted PATH, frozen subprocesses, animation and export')
+# 성공한 검사 복사본은 누적하지 않습니다. 실패한 경우에는 진단용으로 보존됩니다.
+resolved_test_root = test_root.resolve()
+if not resolved_test_root.is_relative_to((root / 'build').resolve()):
+    raise RuntimeError('배포 검사 임시 경로가 build 밖에 있습니다.')
+shutil.rmtree(resolved_test_root)

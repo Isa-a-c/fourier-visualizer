@@ -4,6 +4,12 @@ from .fourier import calculate_fourier_coefficients
 from .expr import evaluate
 
 
+def evolution_animation(x, time, initial, frames, ylabel='u'):
+    """열·파동·열핵·진행파에서 공유하는 1차원 재생 명세입니다."""
+    return dict(x=x, frames=frames, reference=initial,
+                labels=[f't = {t:.5g}' for t in time], xlabel='x', ylabel=ylabel)
+
+
 def sine_coefficients(x, values, length, count):
     """[0, ell] 함수를 기확장하여 (2/ell) 사인 적분을 계산합니다."""
     odd_x = np.r_[-x[:0:-1], x]

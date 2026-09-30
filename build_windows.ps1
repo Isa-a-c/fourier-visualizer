@@ -6,7 +6,7 @@ try {
     @{ built_at = [DateTime]::UtcNow.ToString('o') } | ConvertTo-Json | Set-Content -LiteralPath 'build/build_info.json' -Encoding UTF8
     $fourierBuildInfo = Join-Path $PSScriptRoot 'build/build_info.json'
     # NumPy 기반 앱에 필요하지 않은 선택적 배열 백엔드는 배포하지 않습니다.
-    & '.\.venv\Scripts\python.exe' -m PyInstaller --noconfirm --windowed --onedir --name EngineeringMathStudio --distpath dist --workpath build --specpath build --paths . --add-data "$fourierBuildInfo;." --exclude-module pandas --exclude-module streamlit --exclude-module IPython --exclude-module pytest --exclude-module tkinter --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide2 --exclude-module torch --exclude-module tensorflow --exclude-module jax --exclude-module jaxlib --exclude-module cupy --hidden-import matplotlib.backends.backend_qtagg --hidden-import scipy.special main.py
+    & '.\.venv\Scripts\python.exe' -m PyInstaller --noconfirm --windowed --onedir --name EngineeringMathStudio --distpath dist --workpath build --specpath build --paths . --add-data "$fourierBuildInfo;." --exclude-module pandas --exclude-module streamlit --exclude-module IPython --exclude-module pytest --exclude-module tkinter --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide2 --exclude-module torch --exclude-module tensorflow --exclude-module jax --exclude-module jaxlib --exclude-module cupy --hidden-import matplotlib.backends.backend_qtagg --hidden-import scipy.special --collect-submodules engineering_math.topics main.py
     if ($LASTEXITCODE -ne 0) { throw 'PyInstaller build failed' }
 } finally { Pop-Location }
 exit 0
