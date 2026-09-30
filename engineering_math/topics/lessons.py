@@ -87,8 +87,12 @@ u(x,t) ≈ Σ qₙ(t) sin(nπx/ell)
 
 def lesson_for(topic_id):
     from .chapter11_lessons import CHAPTER11_LESSONS
+    from .chapter12_lessons import CHAPTER12_LESSONS
     from engineering_math.core.expr import FUNCTIONS
-    lesson = CHAPTER11_LESSONS[topic_id] if topic_id in CHAPTER11_LESSONS else LESSONS[topic_id]
+    if topic_id in CHAPTER12_LESSONS:
+        lesson = CHAPTER12_LESSONS[topic_id]
+    else:
+        lesson = CHAPTER11_LESSONS[topic_id] if topic_id in CHAPTER11_LESSONS else LESSONS[topic_id]
     return lesson + '''
 
 ## 수식 및 매개변수 입력 안내

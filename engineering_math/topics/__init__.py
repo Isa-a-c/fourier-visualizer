@@ -7,10 +7,14 @@ def get_topics():
     from .laplace import LaplaceTopic
     from .chapter11_series import HalfRangeTopic, ForcedTopic, ApproximationTopic, SturmTopic, OrthogonalTopic
     from .chapter11_transforms import IntegralTopic, SineCosineTopic, ContinuousTransformTopic, TransformTableTopic
+    from .chapter12 import (PdeBasicsTopic, DalembertTopic, InfiniteHeatTopic, MembraneTopic,
+                            DiskMembraneTopic, PotentialTopic, PdeLaplaceTopic)
     ordered = (FourierTopic(), HalfRangeTopic(), ForcedTopic(), ApproximationTopic(),
                SturmTopic(), OrthogonalTopic(), IntegralTopic(), SineCosineTopic(),
                ContinuousTransformTopic(), TransformTableTopic(),
-               HeatTopic(), WaveTopic(), OdeTopic(), LaplaceTopic())
+               PdeBasicsTopic(), WaveTopic(), DalembertTopic(), HeatTopic(), InfiniteHeatTopic(),
+               MembraneTopic(), DiskMembraneTopic(), PotentialTopic(), PdeLaplaceTopic(),
+               OdeTopic(), LaplaceTopic())
     return {topic.id: topic for topic in ordered}
 
 

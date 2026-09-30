@@ -7,7 +7,7 @@ from engineering_math.core.pde import sine_coefficients, sine_basis, evolution_f
 
 class WaveTopic:
     id = 'wave'
-    title = '편미분방정식 · 1차원 파동'
+    title = '12.2–12.3 · 현의 모델링과 변수분리'
     description = 'u_tt = c² u_xx의 고정단 현을 계산합니다. 초기 변위와 초기 속도를 각각 입력하십시오.'
     inputs = (
         InputSpec('initial', '초기 변위 u(x,0)', 'text', 'sin(pi*x/ell)'),

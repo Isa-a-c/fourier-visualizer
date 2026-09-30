@@ -184,6 +184,28 @@ def run(application, window, report_path):
         application.processEvents()
         window.grab().save(str(Path(report_path).with_name('chapter11-window.png')))
         checks.append('11.2~11.10 전체 주제의 비동기 계산·그래프·학습 설명')
+        chapter12_ids = ['pde_basics', 'dalembert', 'infinite_heat', 'rectangle_membrane',
+                         'disk_membrane', 'coordinate_potential', 'pde_laplace']
+        for topic_id in chapter12_ids:
+            window.selector.setCurrentIndex(window.selector.findData(topic_id))
+            window.calculate()
+            wait_for_job(application, window)
+            assert window.result is not None and window.result.topic == topic_id and not errors, errors
+            assert window.figures
+            window.help()
+            assert '12.' in window.tabs.currentWidget().toPlainText()
+            if topic_id in ('rectangle_membrane', 'disk_membrane'):
+                dialog = AnimationDialog(window.topic.animation(window.result), window)
+                dialog.show()
+                dialog.slider.setValue(dialog.slider.maximum())
+                dialog.canvas.draw()
+                application.processEvents()
+                dialog.grab().save(str(Path(report_path).with_name(topic_id + '-animation.png')))
+                dialog.close()
+        window.tabs.setCurrentIndex(0)
+        application.processEvents()
+        window.grab().save(str(Path(report_path).with_name('chapter12-window.png')))
+        checks.append('12장 새 PDE 주제·기호 잔차·막의 2차원 애니메이션')
         window.calculate()
         window.close()
         assert window.job.process is None

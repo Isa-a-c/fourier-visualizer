@@ -7,7 +7,7 @@ from engineering_math.core.pde import sine_coefficients, heat_accuracy, evolutio
 
 class HeatTopic:
     id = 'heat'
-    title = '편미분방정식 · 1차원 열전도'
+    title = '12.5–12.6 · 열전도 모델링과 급수 해'
     description = 'u_t = α u_xx를 사인 급수로 계산합니다. 양 끝 온도는 시간에 관계없이 고정됩니다.'
     inputs = (
         InputSpec('initial', '초기 온도 u(x,0)', 'text', 'sin(pi*x/ell)', help='x와 막대 길이 ell을 사용하십시오.'),
