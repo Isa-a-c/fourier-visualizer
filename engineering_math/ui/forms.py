@@ -12,6 +12,7 @@ class InputForm(QWidget):
         self.fields = {}
         self.rows = {}
         self.form = QFormLayout(self)
+        self.form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
         for spec in specs:
             if spec.kind == 'int':
                 widget = QSpinBox()

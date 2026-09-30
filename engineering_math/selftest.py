@@ -145,6 +145,32 @@ def run(application, window, report_path):
         wait_for_job(application, window)
         assert 'values' not in window.result.data and not errors, errors
         checks.append('임펄스 역변환의 기호 표시 및 그래프 생략')
+        window.selector.setCurrentIndex(window.selector.findData('ode'))
+        window.form.set_values({'mode': '직접 입력', 'force_expression': 'A*cos(w*t)',
+                                'parameters': 'A=2; w=3', 'end_time': 2., 'num_points': 201})
+        window.calculate()
+        wait_for_job(application, window)
+        assert not errors and window.result.data['laplace_input'] is None, errors
+        assert not window.laplace_link.isEnabled()
+        assert window.result.params['parameters'] == 'A=2; w=3'
+        application.processEvents()
+        window.grab().save(str(Path(report_path).with_name('custom-force.png')))
+        window.form.fields['symbolic_mode'].setCurrentText('라플라스 변환도 계산')
+        window.calculate()
+        wait_for_job(application, window)
+        assert not errors and window.laplace_link.isEnabled(), errors
+        window.open_laplace()
+        wait_for_job(application, window)
+        assert not errors and 'values' in window.result.data, errors
+        checks.append('매개변수 외력 직접 입력·수치 계산·선택적 라플라스 연결')
+        window.selector.setCurrentIndex(window.selector.findData('fourier'))
+        window.form.set_values({'function': 'A*sinc(x)', 'parameters': 'A=2'})
+        window.calculate()
+        wait_for_job(application, window)
+        assert not errors and window.result.params['parameters'] == 'A=2', errors
+        window.help()
+        assert '매개변수' in window.tabs.currentWidget().toPlainText()
+        checks.append('확장 함수 및 공통 매개변수 입력·도움말')
         window.calculate()
         window.close()
         assert window.job.process is None

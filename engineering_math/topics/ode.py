@@ -5,7 +5,7 @@ from scipy.integrate import solve_ivp
 from scipy.linalg import expm
 from engineering_math.core.models import InputSpec, Result, validate_params
 
-FORCES = ('외력 없음', '일정한 외력', '사인 외력', '지연 계단 외력')
+FORCES = ('외력 없음', '일정한 외력', '사인 외력', '지연 계단 외력', '직접 입력')
 
 
 class OdeTopic:
@@ -20,7 +20,13 @@ class OdeTopic:
         InputSpec('position', '초기 변위 y(0)', 'float', 1., -100, 100),
         InputSpec('velocity', '초기 속도 y′(0)', 'float', 0., -100, 100),
         InputSpec('mode', '외력 종류', 'choice', FORCES[0], choices=FORCES),
-        InputSpec('amplitude', '외력 크기', 'float', 1., -100, 100, visible_in=FORCES[1:]),
+        InputSpec('force_expression', '외력 F(t)', 'text', 'exp(-t)*sin(3*t)', visible_in=(FORCES[4],)),
+        InputSpec('parameters', '매개변수 (A=2; w=3)', 'text', '', visible_in=(FORCES[4],)),
+        InputSpec('max_step', '최대 내부 간격', 'float', .02, .000001, 10, visible_in=(FORCES[4],)),
+        InputSpec('breakpoints', '분할 시각 (1; 2)', 'text', '', visible_in=(FORCES[4],)),
+        InputSpec('symbolic_mode', '기호 계산', 'choice', '수치 계산만',
+                  choices=('수치 계산만', '라플라스 변환도 계산'), visible_in=(FORCES[4],)),
+        InputSpec('amplitude', '외력 크기', 'float', 1., -100, 100, visible_in=FORCES[1:4]),
         InputSpec('frequency', '외력 각주파수 (rad/s)', 'float', 2., .001, 100, visible_in=(FORCES[2],)),
         InputSpec('delay', '외력 시작 시간', 'float', 1., 0, 100, visible_in=(FORCES[3],)),
         InputSpec('end_time', '마지막 시간', 'float', 10., .01, 100),
@@ -29,10 +35,15 @@ class OdeTopic:
     examples = {'부족감쇠': {}, '무감쇠': {'damping': 0.},
                 '임계감쇠': {'damping': 4.}, '과감쇠': {'damping': 6.},
                 '공진 (무감쇠)': {'damping': 0., 'position': 0., 'mode': FORCES[2]},
-                '지연 계단 응답': {'position': 0., 'mode': FORCES[3]}}
+                '지연 계단 응답': {'position': 0., 'mode': FORCES[3]},
+                '매개변수 외력': {'mode': FORCES[4], 'force_expression': 'A*exp(-t)*sin(w*t)', 'parameters': 'A=2; w=3'},
+                '구간별 펄스': {'mode': FORCES[4], 'force_expression': 'Piecewise((1, And(t>=1,t<2)), (0, True))', 'position': 0.}}
 
     def compute(self, params):
         p = validate_params(self.inputs, params)
+        if p['mode'] == FORCES[4]:
+            from engineering_math.core.custom_ode import custom_ode_result
+            return custom_ode_result(self.id, p)
         m, c, k = p['mass'], p['damping'], p['stiffness']
         time = np.linspace(0, p['end_time'], p['num_points'])
         natural = np.sqrt(k/m)
@@ -122,8 +133,8 @@ class OdeTopic:
         response = Figure(figsize=(8, 6), layout='constrained')
         axes = response.subplots(2, 1, sharex=True)
         for axis, index, label in zip(axes, (0, 1), ('Displacement', 'Velocity')):
-            axis.plot(d['time'], d['values'][index], label='solve_ivp')
-            axis.plot(d['time'], d['reference'][index], '--', label='Matrix exponential')
+            axis.plot(d['time'], d['values'][index], label=d.get('solution_label', 'solve_ivp'))
+            axis.plot(d['time'], d['reference'][index], '--', label=d.get('reference_label', 'Matrix exponential'))
             axis.set(ylabel=label)
             axis.legend()
             axis.grid(alpha=.3)

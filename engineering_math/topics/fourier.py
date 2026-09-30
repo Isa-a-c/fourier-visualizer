@@ -1,7 +1,7 @@
 """푸리에 주제: 입력 명세, 계산, 시각화를 분리합니다."""
 import numpy as np
 from engineering_math.core.models import InputSpec, Result, validate_params
-from engineering_math.core.expr import real_constant
+from engineering_math.core.expr import real_constant, parameter_expression
 from engineering_math.core.fourier import FourierSession, calculate_fourier_sums, calculate_errors
 from engineering_math.core.plotting import make_comparison_figure, make_error_figure, make_spectrum_figure
 from engineering_math.core.analysis import prepare_analysis, make_analysis_figure
@@ -27,6 +27,7 @@ class FourierTopic:
     description = '주기 함수의 사인·코사인 분해, 부분합의 오차 및 표본화에 따른 변화를 살펴보십시오.'
     inputs = (
         InputSpec('function', '함수 f(x)', 'text', 'x'),
+        InputSpec('parameters', '매개변수 (A=2; w=3)', 'text', ''),
         InputSpec('L', '반주기 L', 'constant', 'pi'),
         InputSpec('N', '부분합 차수 N', 'int', 10, 1, 100),
         InputSpec('num_points', '적분 표본 수', 'int', 5000, 500, 20000),
@@ -41,7 +42,8 @@ class FourierTopic:
     )
     examples = {'기함수 x': {'function': 'x'}, '우함수 x²': {'function': 'x**2'},
                 'Gibbs 현상': {'function': 'sign(x)', 'mode': MODES[1]},
-                '상수 함수': {'function': '3'}, '사인 함수': {'function': 'sin(x)'}}
+                '상수 함수': {'function': '3'}, '사인 함수': {'function': 'sin(x)'},
+                '매개변수 조합': {'function': 'A*exp(-x^2)*cos(w*x)', 'parameters': 'A=2; w=3'}}
 
     def __init__(self):
         self.session = FourierSession()
@@ -55,6 +57,7 @@ class FourierTopic:
 
     def compute(self, params):
         params = validate_params(self.inputs, params)
+        expression_text = str(parameter_expression(params['function'], params['parameters']))
         length = real_constant(params['L'])
         if length <= 0 or not np.isfinite(2*length):
             raise ValueError('L과 주기 2L은 유한한 양수여야 합니다.')
@@ -63,10 +66,10 @@ class FourierTopic:
         required = max([current, *orders])
         if params['mode'] == MODES[1]:
             required = max([required, *parse_orders(params['orders'])])
-        same_input = self.session.key == (params['function'].strip(), length, params['num_points'])
+        same_input = self.session.key == (expression_text, length, params['num_points'])
         previous_count = len(self.session.data[4]) if same_input else 0
         expression, x, y, a0, an, bn = self.session.prepare(
-            params['function'], length, params['num_points'], required)
+            expression_text, length, params['num_points'], required)
         sums = calculate_fourier_sums(x, length, a0, an, bn, [current, *orders])
         error, metrics = calculate_errors(y, sums[current])
         metrics['a₀'] = a0

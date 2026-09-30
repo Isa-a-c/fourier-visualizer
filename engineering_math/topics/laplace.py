@@ -1,7 +1,7 @@
 """단측 라플라스 변환과 인과적 역변환의 기호 학습 모듈입니다."""
 import numpy as np
 import sympy as sp
-from engineering_math.core.expr import parse_expression, evaluate, symbols_for
+from engineering_math.core.expr import parameter_expression, evaluate, symbols_for
 from engineering_math.core.models import InputSpec, Result, validate_params
 
 MODES = ('정변환 t → s', '역변환 s → t')
@@ -15,6 +15,7 @@ class LaplaceTopic:
     inputs = (
         InputSpec('mode', '계산 방향', 'choice', MODES[0], choices=MODES),
         InputSpec('expression', '수식 (t 또는 s)', 'text', 'sin(2*t)'),
+        InputSpec('parameters', '매개변수 (A=2; w=3)', 'text', ''),
         InputSpec('end_time', '그래프 마지막 시간', 'float', 10., .01, 100),
         InputSpec('num_points', '그래프 표본 수', 'int', 1001, 101, 5001),
     )
@@ -22,7 +23,8 @@ class LaplaceTopic:
                 '지연 계단': {'expression': 'Heaviside(t-2)'},
                 '이차식 역변환': {'mode': MODES[1], 'expression': '1/(s**2+4)'},
                 '중근 역변환': {'mode': MODES[1], 'expression': '1/(s+1)**2'},
-                '임펄스 역변환': {'mode': MODES[1], 'expression': '1'}}
+                '임펄스 역변환': {'mode': MODES[1], 'expression': '1'},
+                '매개변수 정변환': {'expression': 'A*exp(-w*t)', 'parameters': 'A=2; w=3'}}
 
     def compute(self, params):
         p = validate_params(self.inputs, params)
@@ -30,17 +32,25 @@ class LaplaceTopic:
         s = sp.Symbol('s')
         notices = ['단측 변환을 사용하며 s는 복소수 변수입니다. 시간 그래프는 t>0의 표본입니다.']
         if p['mode'] == MODES[0]:
-            time_expression = parse_expression(p['expression'], ('t',))
-            transformed, plane, condition = sp.laplace_transform(time_expression, t, s)
+            time_expression = parameter_expression(p['expression'], p['parameters'], ('t',))
+            try:
+                transformed, plane, condition = sp.laplace_transform(time_expression, t, s)
+            except Exception as exc:
+                transformed, plane, condition = sp.LaplaceTransform(time_expression, t, s), None, None
+                notices.append(f'기호 변환을 완료하지 못했습니다({type(exc).__name__}). 원함수의 수치 그래프는 별도로 시도합니다.')
             rows = [['f(t)', str(time_expression)], ['F(s)', str(transformed)],
                     ['수렴 영역', f'Re(s) > {plane}'], ['추가 조건', str(condition)]]
             if transformed.has(sp.LaplaceTransform):
                 rows[2] = ['수렴 영역', '미확정: 변환이 미평가 상태입니다.']
                 notices.append('변환 일부가 닫힌 형태로 계산되지 않았습니다. 미평가 변환식을 그대로 표시합니다.')
         else:
-            parsed = parse_expression(p['expression'], ('s',))
+            parsed = parameter_expression(p['expression'], p['parameters'], ('s',))
             transformed = parsed.xreplace({symbols_for(('s',))[0]: s})
-            time_expression = sp.inverse_laplace_transform(transformed, s, t)
+            try:
+                time_expression = sp.inverse_laplace_transform(transformed, s, t)
+            except Exception as exc:
+                time_expression = sp.InverseLaplaceTransform(transformed, s, t, None)
+                notices.append(f'역변환을 완료하지 못했습니다({type(exc).__name__}). 미평가 식을 표시합니다.')
             rows = [['F(s)', str(transformed)], ['f(t)', str(time_expression)],
                     ['해석', '인과적 단측 역변환입니다. 일반적인 양측 변환의 모든 ROC를 열거하지 않습니다.']]
         data = dict(time_expression=time_expression, transformed=transformed,

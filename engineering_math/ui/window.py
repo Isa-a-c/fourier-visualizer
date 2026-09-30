@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
             self.result = result
             self.update_input_state()
             self.animate.setEnabled(getattr(self.topic, 'supports_animation', True))
-            self.laplace_link.setEnabled(result.topic == 'ode')
+            self.laplace_link.setEnabled(result.topic == 'ode' and bool(result.data.get('laplace_input')))
             self.statusBar().showMessage('계산이 완료되었습니다. 결과는 계산 당시 입력값을 기준으로 합니다.')
         except Exception as exc:
             self.show_error(str(exc))
@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
                 self.show_error(str(exc))
 
     def open_laplace(self):
-        if self.result is None or self.result.topic != 'ode':
+        if self.result is None or self.result.topic != 'ode' or not self.result.data.get('laplace_input'):
             return
         params = {'mode': '역변환 s → t', 'expression': self.result.data['laplace_input'],
                   'end_time': self.result.params['end_time'], 'num_points': self.result.params['num_points']}

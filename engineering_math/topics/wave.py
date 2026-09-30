@@ -1,6 +1,6 @@
 """고정된 양 끝을 갖는 현의 무감쇠 파동방정식을 계산합니다."""
 import numpy as np
-from engineering_math.core.expr import parse_expression, evaluate
+from engineering_math.core.expr import parameter_expression, evaluate
 from engineering_math.core.models import InputSpec, Result, validate_params
 from engineering_math.core.pde import sine_coefficients, sine_basis, evolution_figures
 
@@ -12,6 +12,7 @@ class WaveTopic:
     inputs = (
         InputSpec('initial', '초기 변위 u(x,0)', 'text', 'sin(pi*x/ell)'),
         InputSpec('velocity', '초기 속도 u_t(x,0)', 'text', '0'),
+        InputSpec('parameters', '매개변수 (A=2; w=3)', 'text', ''),
         InputSpec('length', '현의 길이 ell', 'float', 1., .001, 1000),
         InputSpec('speed', '파동 속력 c', 'float', 1., .000001, 1000),
         InputSpec('N', '사인 급수 차수 N', 'int', 20, 1, 100),
@@ -33,8 +34,8 @@ class WaveTopic:
         length, count = params['length'], params['N']
         x = np.linspace(0, length, params['num_points'])
         time = np.linspace(0, params['end_time'], params['time_points'])
-        displacement_expr = parse_expression(params['initial'], ('x', 'ell'))
-        velocity_expr = parse_expression(params['velocity'], ('x', 'ell'))
+        displacement_expr = parameter_expression(params['initial'], params['parameters'], ('x', 'ell'))
+        velocity_expr = parameter_expression(params['velocity'], params['parameters'], ('x', 'ell'))
         initial = evaluate(displacement_expr, (x, length), ('x', 'ell'))
         initial_velocity = evaluate(velocity_expr, (x, length), ('x', 'ell'))
         displacement_coefficients = sine_coefficients(x, initial, length, count)

@@ -47,7 +47,7 @@ for name in ['LICENSE.txt','LICENSE']:
 archive_path=root/f'dist/EngineeringMathStudio-v{VERSION}-windows-x64.zip'
 with zipfile.ZipFile(archive_path,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as archive:
     for file in folder.rglob('*'):
-        if file.is_file() and file.name not in ('validation-report.json', 'validation-report.png', 'wave-small.png', 'ode-window.png', 'laplace-window.png'):
+        if file.is_file() and file.name not in ('validation-report.json', 'validation-report.png', 'wave-small.png', 'ode-window.png', 'laplace-window.png', 'custom-force.png'):
             archive.write(file,file.relative_to(folder.parent))
 digest=hashlib.sha256(archive_path.read_bytes()).hexdigest()
 archive_path.with_suffix('.sha256').write_text(f'{digest}  {archive_path.name}\n',encoding='ascii')
